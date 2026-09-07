@@ -3,8 +3,9 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
+  title: 'Analizador de Python — Léxico, Sintáctico y Semántico',
+  description:
+    'Herramienta interactiva que analiza código Python en tres fases: análisis léxico (tokens), sintáctico (AST) y semántico (validaciones), con reporte de errores.',
   generator: 'v0.app',
   icons: {
     icon: [
