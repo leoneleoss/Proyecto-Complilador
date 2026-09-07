@@ -61,8 +61,8 @@ export function AnalyzerWorkbench() {
             <Terminal className="size-5" />
           </div>
           <div>
-            <h1 className="text-sm font-semibold leading-tight text-foreground">
-              Analizador de Python
+            <h1 className="text-3xl font-semibold leading-tight text-foreground">
+              Analizador
             </h1>
             <p className="text-xs text-muted-foreground">
               Léxico · Sintáctico · Semántico
