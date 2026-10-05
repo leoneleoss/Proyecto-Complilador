@@ -50,7 +50,7 @@ export function analyzeSemantics(ast: ASTNode | null): Diagnostic[] {
   // para permitir llamadas antes de la definición (como en Python al ejecutar).
   const collectFunctions = (n: ASTNode) => {
     if (n.type === "DefinicionFuncion") {
-      const name = (n as ASTNode & { name?: string }).name ?? n.label.replace("def ", "")
+      const name = n.name ?? n.label.replace("def ", "")
       const params = n.children.find((c) => c.type === "Parámetros")
       const paramNodes = params ? params.children : []
       const withDefaults = paramNodes.filter((p) => p.children.some((c) => c.type === "Rol" && c.label === "default")).length
@@ -89,6 +89,14 @@ export function analyzeSemantics(ast: ASTNode | null): Diagnostic[] {
         if (target) {
           const tgt = target
           if (tgt.type === "Identificador") {
+            // "x += 1" lee x antes de escribirla: debe existir previamente.
+            if (n.op && n.op !== "=" && !isDeclared(ctx.scope, tgt.label)) {
+              diagnostics.push({
+                phase: "semantico", severity: "error",
+                message: `La variable "${tgt.label}" se usa con '${n.op}' antes de ser definida.`,
+                line: tgt.line, column: tgt.column,
+              })
+            }
             declare(ctx.scope, tgt.label)
           } else if (tgt.type === "Indice" || tgt.type === "Atributo") {
             // asignación a a[i] o a.b: el objeto debe existir.
@@ -149,7 +157,10 @@ export function analyzeSemantics(ast: ASTNode | null): Diagnostic[] {
             if (def) checkExpr(def.children[0], ctx)
           }
         }
-        if (body) visit(body, { scope: fnScope, inFunction: true, inLoop: false })
+        // En Python el cuerpo se resuelve al llamar a la función, así que puede
+        // leer variables globales definidas después del "def". Se difiere su
+        // recorrido hasta terminar el ámbito que la contiene.
+        if (body) deferred.push(() => visit(body, { scope: fnScope, inFunction: true, inLoop: false }))
         break
       }
       case "DefinicionClase": {
@@ -253,8 +264,11 @@ export function analyzeSemantics(ast: ASTNode | null): Diagnostic[] {
     }
   }
 
+  const deferred: Array<() => void> = []
   const globalScope = makeScope(null)
   visit(ast, { scope: globalScope, inFunction: false, inLoop: false })
+  while (deferred.length > 0) deferred.shift()!()
 
+  diagnostics.sort((a, b) => a.line - b.line || a.column - b.column)
   return diagnostics
 }

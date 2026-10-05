@@ -28,7 +28,7 @@ export interface Token {
 // Representa un problema encontrado en cualquiera de las fases.
 export interface Diagnostic {
   // Fase que originó el diagnóstico.
-  phase: "lexico" | "sintactico" | "semantico"
+  phase: "lexico" | "sintactico" | "semantico" | "generacion"
   // "error" detiene la corrección; "advertencia" es informativo.
   severity: "error" | "advertencia"
   message: string
@@ -44,6 +44,24 @@ export interface ASTNode {
   line: number
   column: number
   children: ASTNode[]
+  // Nombre declarado (funciones).
+  name?: string
+  // Operador de asignación ("=", "+=", ...).
+  op?: string
+  // La expresión estaba entre paréntesis en el código fuente
+  // (distingue "(a < b) < c" de la comparación encadenada "a < b < c").
+  parenthesized?: boolean
+}
+
+// Resultado de la fase 4 (generación de código C).
+export interface TranslationResult {
+  // "bloqueado": hay errores en fases anteriores y no se intenta traducir.
+  // "error": el programa es válido pero usa construcciones no traducibles.
+  status: "ok" | "bloqueado" | "error"
+  code: string | null
+  errors: Diagnostic[]
+  // Indica si el programa necesita enlazar con la biblioteca matemática (-lm).
+  needsMath: boolean
 }
 
 // Resultado agregado de correr el pipeline completo.
@@ -53,4 +71,5 @@ export interface AnalysisResult {
   lexicalErrors: Diagnostic[]
   syntaxErrors: Diagnostic[]
   semanticDiagnostics: Diagnostic[]
+  translation: TranslationResult
 }
