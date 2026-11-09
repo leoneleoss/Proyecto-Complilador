@@ -761,7 +761,8 @@ export function generateJavaScript(ast: ASTNode): TranslationResult {
     fmt.push("\\n")
     useHeader("stdio.h")
     const format = `"${fmt.join("")}"`
-    return { code: values.length ? `printf(${format}, ${values.join(", ")})` : `printf(${format})`, type: "void" }
+    // JavaScript conserva los argumentos separados y los imprime con espacios.
+    return { code: values.length ? `console.log(${values.join(", ")})` : `console.log()`, type: "void" }
   }
 
   // ---- Sentencias ----
