@@ -431,7 +431,7 @@ export function generateC(ast: ASTNode): TranslationResult {
       return
     }
     if (v.type === null) {
-      v.type = t
+      v.type = t as Ty
       return
     }
     if (v.type !== t) {

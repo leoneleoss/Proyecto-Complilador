@@ -4,7 +4,8 @@
 import { tokenize } from "./lexer"
 import { parse } from "./parser"
 import { analyzeSemantics } from "./semantic"
-import type { AnalysisResult } from "./types"
+import { generateC } from "./codegen"
+import type { AnalysisResult, TranslationResult } from "./types"
 
 export function analyze(source: string): AnalysisResult {
   const { tokens, errors: lexicalErrors } = tokenize(source)
@@ -12,6 +13,13 @@ export function analyze(source: string): AnalysisResult {
   // Solo corremos la fase semántica si no hubo errores léxicos graves,
   // pero el AST siempre se genera con recuperación de errores.
   const semanticDiagnostics = analyzeSemantics(ast)
+  const blockingErrors = [...lexicalErrors, ...syntaxErrors, ...semanticDiagnostics].filter(
+    (diagnostic) => diagnostic.severity === "error",
+  )
+  const translation: TranslationResult =
+    ast && blockingErrors.length === 0
+      ? generateC(ast)
+      : { status: "bloqueado", code: null, errors: [], needsMath: false }
 
   return {
     tokens,
@@ -19,6 +27,7 @@ export function analyze(source: string): AnalysisResult {
     lexicalErrors,
     syntaxErrors,
     semanticDiagnostics,
+    translation,
   }
 }
 
