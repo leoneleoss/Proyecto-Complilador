@@ -964,47 +964,50 @@ export function generateJavaScript(ast: ASTNode): TranslationResult {
     return { status: "error", code: null, errors, needsMath: false }
   }
 
-  // ---- Ensamblado del programa ----
-  const declType = (t: PyType) => {
-    if (t === "bool") useHeader("stdbool.h")
-    return C_TYPE[t]
-  }
-  const signature = (fn: FnInfo) => {
-    const ret = fn.returnsValue ? declType(fn.returnType!) : "void"
-    const params = fn.params.map((p) => {
-      const v = fn.vars.get(p.name)!
-      return `${declType(v.type!)} ${v.cname}`
-    })
-    return `${ret} ${fn.cname}(${params.length ? params.join(", ") : "void"})`
-  }
+  // ---- Ensamblado del programa JavaScript ----
+  // Las pasadas anteriores conservan la semántica del lenguaje fuente; aquí
+  // solo se cambia la representación final, sin volver a interpretar texto.
+  const jsLine = (line: string) =>
+    line
+      .replace(/\b(static|const char \*|long long|double|bool|void)\s+/g, "")
+      .replace(/\bprintf\s*\(/g, "console.log(")
+      .replace(/\bfprintf\s*\([^,]+,\s*/g, "console.error(")
+      .replace(/;\s*$/g, "")
+      .replace(/\btrue\b/g, "true")
+      .replace(/\bfalse\b/g, "false")
+      .replace(/\((?:long long|double|bool|const char \*)\)/g, "")
 
-  const sections: string[][] = []
-
-  const globalDecls = [...globals.values()]
-    .filter((v) => v.type !== null)
-    .map((v) => `static ${declType(v.type!)} ${v.cname} = ${C_DEFAULT[v.type!]};`)
+  const jsSignature = (fn: FnInfo) =>
+    `function ${fn.cname}(${fn.params.map((p) => fn.vars.get(p.name)!.cname).join(", ")}) {`
 
   const fnList = [...functions.values()]
-  const prototypes = fnList.map((fn) => `${signature(fn)};`)
   const fnDefs = fnList.map((fn) => {
     const locals = [...fn.vars.values()]
       .filter((v) => !v.isParam && v.type !== null)
-      .map((v) => `    ${declType(v.type!)} ${v.cname} = ${C_DEFAULT[v.type!]};`)
-    const body = fnBodies.get(fn.name) ?? []
-    return [`${signature(fn)} {`, ...locals, ...(locals.length && body.length ? [""] : []), ...body, "}"].join("\n")
+      .map((v) => `    let ${v.cname} = ${v.type === "str" ? '""' : v.type === "float" ? "0.0" : v.type === "bool" ? "false" : "0"}`)
+    const body = (fnBodies.get(fn.name) ?? []).map(jsLine)
+    return [jsSignature(fn), ...locals, ...(locals.length && body.length ? [""] : []), ...body, "}"].join("\n")
   })
 
-  useHeader("stdio.h")
-  const headers = HEADER_ORDER.filter((h) => used.has(`#${h}`)).map((h) => `#include <${h}>`)
-  sections.push(["/* Programa C generado a partir de Python simplificado. */", ...headers])
+  const globalDecls = [...globals.values()]
+    .filter((v) => v.type !== null)
+    .map((v) => `let ${v.cname} = ${v.type === "str" ? '""' : v.type === "float" ? "0.0" : v.type === "bool" ? "false" : "0"}`)
 
-  const helperNames = Object.keys(HELPERS).filter((h) => used.has(h))
-  if (helperNames.length) sections.push(helperNames.map((h) => HELPERS[h].code).join("\n\n").split("\n"))
-  if (globalDecls.length) sections.push(globalDecls)
-  if (prototypes.length) sections.push(prototypes)
-  if (fnDefs.length) sections.push(fnDefs.join("\n\n").split("\n"))
-  sections.push(["int main(void) {", ...mainBody, ...(mainBody.length ? [""] : []), "    return 0;", "}"])
-
+  const runtime = [
+    "const py_div = (a, b) => { if (b === 0) throw new Error('ZeroDivisionError: division by zero'); return a / b }",
+    "const py_floordiv = (a, b) => { if (b === 0) throw new Error('ZeroDivisionError: division by zero'); return Math.floor(a / b) }",
+    "const py_floordiv_f = py_floordiv",
+    "const py_mod = (a, b) => { if (b === 0) throw new Error('ZeroDivisionError: division by zero'); return ((a % b) + b) % b }",
+    "const py_fmod = py_mod",
+    "const py_ipow = (a, b) => a ** b",
+  ]
+  const main = ["(() => {", ...globalDecls.map((line) => `  ${line}`), ...mainBody.map((line) => `  ${jsLine(line)}`), "})()"]
+  const sections = [
+    ["// JavaScript generado a partir del lenguaje Python simplificado."],
+    runtime,
+    ...(fnDefs.length ? [fnDefs.join("\n\n").split("\n")] : []),
+    main,
+  ]
   const code = sections.map((s) => s.join("\n")).join("\n\n") + "\n"
-  return { status: "ok", code, errors: [], needsMath: used.has("#math.h") }
+  return { status: "ok", code, errors: [], needsMath: false }
 }
