@@ -970,8 +970,9 @@ export function generateJavaScript(ast: ASTNode): TranslationResult {
   const jsLine = (line: string) =>
     line
       .replace(/\b(static|const char \*|long long|double|bool|void)\s+/g, "")
-      .replace(/\bprintf\s*\(/g, "console.log(")
-      .replace(/\bfprintf\s*\([^,]+,\s*/g, "console.error(")
+.replace(/\bprintf\s*\(/g, "console.log(")
+    .replace(/console\.log\(\s*\"%(?:lld|ld|d|f)\\n\"\s*,\s*([^\n]+)\)/g, "console.log($1)")
+    .replace(/\bfprintf\s*\([^,]+,\s*/g, "console.error(")
       .replace(/;\s*$/g, "")
       .replace(/\btrue\b/g, "true")
       .replace(/\bfalse\b/g, "false")

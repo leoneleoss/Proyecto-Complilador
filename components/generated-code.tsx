@@ -12,17 +12,35 @@ export function GeneratedCode({ translation }: GeneratedCodeProps) {
   const [copied, setCopied] = useState(false)
   const [compileState, setCompileState] = useState<"idle" | "ok" | "error">("idle")
   const [compileMessage, setCompileMessage] = useState("")
+  const [consoleOutput, setConsoleOutput] = useState<string[]>([])
 
   const compileJavaScript = () => {
     if (!translation.code) return
     try {
-      // La salida se valida en un alcance aislado; no se ejecuta código del usuario automáticamente.
       new Function(translation.code)
       setCompileState("ok")
       setCompileMessage("La traducción es JavaScript válido y puede ejecutarse.")
     } catch (error) {
       setCompileState("error")
       setCompileMessage(error instanceof Error ? error.message : "No se pudo compilar la traducción.")
+    }
+  }
+
+  const executeJavaScript = () => {
+    if (!translation.code) return
+    const output: string[] = []
+    const runtimeConsole = {
+      log: (...values: unknown[]) => output.push(values.map(String).join(" ")),
+      info: (...values: unknown[]) => output.push(values.map(String).join(" ")),
+      warn: (...values: unknown[]) => output.push(`[advertencia] ${values.map(String).join(" ")}`),
+      error: (...values: unknown[]) => output.push(`[error] ${values.map(String).join(" ")}`),
+    }
+
+    try {
+      new Function("console", translation.code)(runtimeConsole)
+      setConsoleOutput(output.length ? output : ["Ejecución completada sin salida en consola."])
+    } catch (error) {
+      setConsoleOutput([`Error de ejecución: ${error instanceof Error ? error.message : String(error)}`])
     }
   }
 
@@ -77,6 +95,9 @@ export function GeneratedCode({ translation }: GeneratedCodeProps) {
           <button type="button" onClick={compileJavaScript} className="rounded-md bg-primary px-2.5 py-1 text-xs text-primary-foreground transition-opacity hover:opacity-90">
             Compilar traducción
           </button>
+          <button type="button" onClick={executeJavaScript} disabled={compileState !== "ok"} className="rounded-md border border-emerald-500/40 px-2.5 py-1 text-xs text-emerald-400 transition-colors hover:bg-emerald-500/10 disabled:cursor-not-allowed disabled:opacity-40">
+            Ejecutar
+          </button>
           <button
             type="button"
             onClick={copyCode}
@@ -94,6 +115,15 @@ export function GeneratedCode({ translation }: GeneratedCodeProps) {
         <div className="mb-2 text-xs font-medium text-muted-foreground">Compilación</div>
         {compileState === "idle" ? <p className="text-xs text-muted-foreground">Pulsa “Compilar traducción” para validar la salida JavaScript.</p> : <p className={`text-xs ${compileState === "ok" ? "text-emerald-400" : "text-destructive"}`}>{compileMessage}</p>}
       </div>
+      <section aria-labelledby="console-title" className="border-t border-border bg-black/20 px-4 py-3">
+        <div className="mb-2 flex items-center justify-between">
+          <h3 id="console-title" className="font-mono text-xs font-medium text-foreground">Consola de ejecución</h3>
+          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">JavaScript</span>
+        </div>
+        <div className="thin-scroll max-h-32 min-h-12 overflow-auto rounded-md border border-border bg-background/70 p-3 font-mono text-xs leading-5">
+          {consoleOutput.length ? consoleOutput.map((line, index) => <div key={`${index}-${line}`} className={line.startsWith("Error") ? "text-destructive" : "text-emerald-300"}><span className="mr-2 text-muted-foreground">›</span>{line}</div>) : <span className="text-muted-foreground">Compila y pulsa “Ejecutar” para ver la salida.</span>}
+        </div>
+      </section>
     </div>
   )
 }
