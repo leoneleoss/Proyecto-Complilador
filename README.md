@@ -5,6 +5,8 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [v0](https://v
 ## URL del proyecto
 [proyecto-complilador.vercel.app](proyecto-complilador.vercel.app)] 
 
+## Preview
+![Preview](photo.png)
 ## Documento de diseño
 Analizador de un subconjunto de Python implementado en TypeScript, dividido en tres fases independientes que se comunican mediante estructuras de datos bien definidas.
 
