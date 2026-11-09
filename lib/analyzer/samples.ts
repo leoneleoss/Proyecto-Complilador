@@ -1,4 +1,6 @@
-// Programas de muestra que demuestran el manejo de tokens y de errores.
+// Casos de prueba del lenguaje creado.
+// Cada programa está documentado para que el usuario pueda entender qué
+// característica valida y qué resultado debería observar en el analizador.
 
 export interface Sample {
   id: string
@@ -10,9 +12,10 @@ export interface Sample {
 export const SAMPLES: Sample[] = [
   {
     id: "correcto",
-    name: "Programa correcto",
-    description: "Código válido que ejercita tokens, funciones, bucles y condicionales.",
-    code: `# Calcula el factorial y una serie de Fibonacci
+    name: "Correcto: factorial y Fibonacci",
+    description: "Ejemplo integral: funciones, parámetros, for, while, if y print.",
+    code: `# CASO CORRECTO: combina las construcciones principales del lenguaje.
+# Debe pasar las fases léxica, sintáctica y semántica sin errores.
 def factorial(n):
     resultado = 1
     for i in range(1, n + 1):
@@ -23,66 +26,106 @@ def fibonacci(cantidad):
     a = 0
     b = 1
     while cantidad > 0:
-        temp = a + b
+        siguiente = a + b
         a = b
-        b = temp
+        b = siguiente
         cantidad = cantidad - 1
     return a
 
 numero = 5
 if numero >= 0:
-    print(factorial(numero))
-    print(fibonacci(numero))
+    print("Factorial:", factorial(numero))
+    print("Fibonacci:", fibonacci(numero))
 else:
     print("El numero debe ser positivo")
 `,
   },
   {
+    id: "correcto1",
+    name: "Correcto 1: Hola mundo",
+    description: "Caso mínimo para comprobar que print de texto se traduce y ejecuta en JavaScript.",
+    code: `# CASO CORRECTO 1: salida de texto.
+# La consola de JavaScript debe mostrar exactamente: Hola mundo.
+mensaje = "Hola mundo"
+print(mensaje)
+print("La traduccion funciona")
+`,
+  },
+  {
+    id: "correcto2",
+    name: "Correcto 2: operaciones y decisiones",
+    description: "Caso correcto adicional con aritmética, booleanos, elif y llamadas anidadas.",
+    code: `# CASO CORRECTO 2: expresiones y control de flujo.
+# Comprueba que los valores calculados llegan correctamente a print.
+def clasificar(valor):
+    if valor < 0:
+        return "negativo"
+    elif valor == 0:
+        return "cero"
+    else:
+        return "positivo"
+
+base = 3
+potencia = base ** 2
+print("Resultado:", potencia)
+print("Estado:", clasificar(potencia))
+`,
+  },
+  {
     id: "lexico",
-    name: "Errores léxicos",
-    description: "Caracteres inválidos, número mal formado y cadena sin cerrar.",
-    code: `x = 10
-y = 12abc      # numero mal formado
-z = x $ y      # caracter invalido
-mensaje = "hola   # cadena sin cerrar
-precio = 3.14.15  # flotante mal formado
+    name: "Error léxico",
+    description: "Comentarios explicativos incluidos: número mal formado, carácter inválido y cadena sin cerrar.",
+    code: `# CASO DE ERROR LÉXICO.
+# 1) 12abc mezcla un número con un identificador.
+# 2) $ no pertenece al vocabulario del lenguaje.
+# 3) La cadena de mensaje no termina con comillas.
+# 4) 3.14.15 contiene dos puntos decimales.
+x = 12abc
+y = x $ 2
+mensaje = "cadena sin cerrar
+precio = 3.14.15
 `,
   },
   {
     id: "sintactico",
-    name: "Errores sintácticos",
-    description: "Paréntesis sin cerrar, dos puntos faltantes y expresión incompleta.",
-    code: `def suma(a, b
+    name: "Error sintáctico",
+    description: "Comentarios explicativos incluidos: faltan delimitadores, dos puntos y una expresión completa.",
+    code: `# CASO DE ERROR SINTÁCTICO.
+# La función no cierra sus parámetros con ')'.
+def suma(a, b
     return a + b
 
-if x > 5
+# A una cabecera if le falta ':'.
+if suma(1, 2) > 2
     print("mayor")
 
+# La asignación termina con un operador sin operando.
 resultado = 3 +
-valor = (2 + 3
 `,
   },
   {
     id: "semantico",
-    name: "Errores semánticos",
-    description: "Variable no definida, argumentos incorrectos y return fuera de función.",
-    code: `def saludar(nombre):
-    print("Hola " + nombre)
+    name: "Error semántico",
+    description: "Comentarios explicativos incluidos: variable desconocida, aridad incorrecta y control fuera de contexto.",
+    code: `# CASO DE ERROR SEMÁNTICO.
+def saludar(nombre):
+    print("Hola", nombre)
 
-saludar("Ana", "extra")   # demasiados argumentos
-print(total)              # variable no definida
-
-return 5                  # return fuera de funcion
-
-while True:
-    break
-continue                  # continue fuera de bucle
+# La función recibe un argumento de más.
+saludar("Ana", "extra")
+# total nunca fue declarado.
+print(total)
+# return solo es válido dentro de una función.
+return 5
+# continue solo es válido dentro de un bucle.
+continue
 `,
   },
   {
     id: "vacio",
     name: "Editor en blanco",
-    description: "Empieza desde cero.",
-    code: "",
+    description: "Punto de partida para escribir un programa propio.",
+    code: `# Escribe aquí un programa del lenguaje creado.
+`,
   },
 ]

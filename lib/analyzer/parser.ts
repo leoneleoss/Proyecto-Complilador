@@ -67,18 +67,58 @@ export function parse(inputTokens: Token[]): ParseResult {
   }
 
   // Salta tokens hasta el final de la línea lógica actual (recuperación).
+  // Si la línea descartada abría un bloque con sangría (p. ej. un "if" sin ':'),
+  // ese bloque también se descarta de forma balanceada; de lo contrario sus
+  // INDENT/DEDENT huérfanos provocarían errores en cascada y se tragarían la
+  // siguiente sentencia válida. Nunca consume un DEDENT del bloque que la contiene.
   const synchronize = () => {
-    while (!atEnd()) {
-      if (peek().type === "NUEVA_LINEA") {
-        advance()
+    while (!atEnd() && !check("DEDENT")) {
+      if (advance().type === "NUEVA_LINEA") {
+        if (check("INDENT")) discardBlock()
         return
       }
-      advance()
     }
   }
 
   const skipNewlines = () => {
     while (check("NUEVA_LINEA")) advance()
+  }
+
+  // Analiza las sentencias de un bloque ya abierto (tras INDENT) hasta su DEDENT.
+  const parseIndentedBody = (container: ASTNode) => {
+    skipNewlines()
+    while (!check("DEDENT") && !atEnd()) {
+      if (check("INDENT")) {
+        reportUnexpectedIndent()
+      } else {
+        try {
+          const stmt = parseStatement()
+          if (stmt) container.children.push(stmt)
+        } catch (e) {
+          if (e instanceof ParseError) synchronize()
+          else throw e
+        }
+      }
+      skipNewlines()
+    }
+  }
+
+  // Bloque cuya cabecera tenía errores: se analiza para reportar sus errores
+  // internos, pero sus nodos se descartan.
+  const discardBlock = () => {
+    const open = advance()
+    parseIndentedBody(node("Bloque", "descartado", open))
+    match("DEDENT")
+  }
+
+  const reportUnexpectedIndent = () => {
+    const t = peek()
+    errors.push({
+      phase: "sintactico", severity: "error",
+      message: "Sangría inesperada: la línea tiene más indentación que el bloque actual.",
+      line: t.line, column: t.column,
+    })
+    discardBlock()
   }
 
   // ---- Sentencias ----
@@ -87,12 +127,18 @@ export function parse(inputTokens: Token[]): ParseResult {
     const root = node("Programa", "Programa", peek())
     skipNewlines()
     while (!atEnd()) {
-      try {
-        const stmt = parseStatement()
-        if (stmt) root.children.push(stmt)
-      } catch (e) {
-        if (e instanceof ParseError) synchronize()
-        else throw e
+      if (check("DEDENT")) {
+        advance()
+      } else if (check("INDENT")) {
+        reportUnexpectedIndent()
+      } else {
+        try {
+          const stmt = parseStatement()
+          if (stmt) root.children.push(stmt)
+        } catch (e) {
+          if (e instanceof ParseError) synchronize()
+          else throw e
+        }
       }
       skipNewlines()
     }
@@ -107,17 +153,7 @@ export function parse(inputTokens: Token[]): ParseResult {
       if (!match("INDENT")) {
         throw error("Se esperaba un bloque con sangría después de ':'.")
       }
-      skipNewlines()
-      while (!check("DEDENT") && !atEnd()) {
-        try {
-          const stmt = parseStatement()
-          if (stmt) suite.children.push(stmt)
-        } catch (e) {
-          if (e instanceof ParseError) synchronize()
-          else throw e
-        }
-        skipNewlines()
-      }
+      parseIndentedBody(suite)
       expect("DEDENT", undefined, "el fin del bloque con sangría")
     } else {
       // Bloque en la misma línea: if x: return 1
@@ -197,7 +233,7 @@ export function parse(inputTokens: Token[]): ParseResult {
     const kw = advance()
     const name = expect("IDENTIFICADOR", undefined, "el nombre de la función")
     const n = node("DefinicionFuncion", `def ${name.value}`, kw)
-    ;(n as ASTNode & { name?: string }).name = name.value
+    n.name = name.value
     expect("DELIMITADOR", "(", "'(' después del nombre de la función")
     const params = node("Parámetros", "parámetros", peek())
     if (!check("DELIMITADOR", ")")) {
@@ -266,6 +302,7 @@ export function parse(inputTokens: Token[]): ParseResult {
       const op = advance()
       const value = parseExpression()
       const n = node("Asignacion", `asignar (${op.value})`, op)
+      n.op = op.value
       n.children.push(labeled("objetivo", expr))
       n.children.push(labeled("valor", value))
       return n
@@ -405,6 +442,7 @@ export function parse(inputTokens: Token[]): ParseResult {
       advance()
       const inner = parseExpression()
       expect("DELIMITADOR", ")", "')' que cierra el paréntesis")
+      inner.parenthesized = true
       return inner
     }
     if (check("DELIMITADOR", "[")) {

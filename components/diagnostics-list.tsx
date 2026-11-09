@@ -12,6 +12,7 @@ const PHASE_LABEL: Record<Diagnostic["phase"], string> = {
   lexico: "Léxico",
   sintactico: "Sintáctico",
   semantico: "Semántico",
+  generacion: "Generación",
 }
 
 export function DiagnosticsList({ diagnostics, emptyMessage }: DiagnosticsListProps) {

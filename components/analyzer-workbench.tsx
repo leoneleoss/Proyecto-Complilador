@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { Braces, ListTree, ScanText, TriangleAlert, BookOpen, Terminal } from "lucide-react"
+import { ListTree, ScanText, TriangleAlert, BookOpen, Terminal, FileCode2 } from "lucide-react"
 import { analyze } from "@/lib/analyzer"
 import { SAMPLES } from "@/lib/analyzer/samples"
 import { CodeEditor } from "./code-editor"
@@ -9,6 +9,8 @@ import { TokenTable } from "./token-table"
 import { AstTree } from "./ast-tree"
 import { DiagnosticsList } from "./diagnostics-list"
 import { Documentation } from "./documentation"
+import { GeneratedCode } from "./generated-code"
+import { LanguageReference } from "./language-reference"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Select,
@@ -42,7 +44,8 @@ export function AnalyzerWorkbench() {
   const errorCount = allDiagnostics.filter((d) => d.severity === "error").length
   const warningCount = allDiagnostics.filter((d) => d.severity === "advertencia").length
 
-  const handleSampleChange = (id: string) => {
+  const handleSampleChange = (id: string | null) => {
+    if (!id) return
     const sample = SAMPLES.find((s) => s.id === id)
     if (sample) {
       setSampleId(id)
@@ -93,8 +96,9 @@ export function AnalyzerWorkbench() {
 
       {/* Cuerpo: editor + resultados */}
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 p-3 lg:grid-cols-2">
-        {/* Panel izquierdo: editor */}
-        <section className="flex min-h-0 flex-col gap-2">
+        {/* Panel izquierdo: lenguaje y editor */}
+        <section className="flex min-h-0 flex-col gap-3">
+          <LanguageReference />
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm font-medium text-foreground">
               <ScanText className="size-4 text-muted-foreground" />
@@ -114,7 +118,7 @@ export function AnalyzerWorkbench() {
         {/* Panel derecho: resultados en pestañas */}
         <section className="flex min-h-0 flex-col rounded-lg border border-border bg-card">
           <Tabs defaultValue="tokens" className="flex min-h-0 flex-1 flex-col">
-            <TabsList className="m-2 grid grid-cols-4">
+            <TabsList className="m-2 grid grid-cols-5">
               <TabsTrigger value="tokens" className="gap-1.5">
                 <ScanText className="size-4" />
                 <span className="hidden sm:inline">Tokens</span>
@@ -131,6 +135,10 @@ export function AnalyzerWorkbench() {
                     {errorCount + warningCount}
                   </span>
                 )}
+              </TabsTrigger>
+              <TabsTrigger value="translation" className="gap-1.5">
+                <FileCode2 className="size-4" />
+                <span className="hidden sm:inline">Python → JavaScript</span>
               </TabsTrigger>
               <TabsTrigger value="docs" className="gap-1.5">
                 <BookOpen className="size-4" />
@@ -153,6 +161,9 @@ export function AnalyzerWorkbench() {
                     emptyMessage="Sin errores. El código pasó las tres fases del análisis."
                   />
                 </div>
+              </TabsContent>
+              <TabsContent value="translation" className="m-0 h-full">
+                <GeneratedCode translation={result.translation} />
               </TabsContent>
               <TabsContent value="docs" className="m-0 h-full">
                 <Documentation />
