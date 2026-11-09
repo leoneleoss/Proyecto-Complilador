@@ -10,6 +10,7 @@ import { AstTree } from "./ast-tree"
 import { DiagnosticsList } from "./diagnostics-list"
 import { Documentation } from "./documentation"
 import { GeneratedCode } from "./generated-code"
+import { LanguageReference } from "./language-reference"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Select,
@@ -95,8 +96,9 @@ export function AnalyzerWorkbench() {
 
       {/* Cuerpo: editor + resultados */}
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 p-3 lg:grid-cols-2">
-        {/* Panel izquierdo: editor */}
-        <section className="flex min-h-0 flex-col gap-2">
+        {/* Panel izquierdo: lenguaje y editor */}
+        <section className="flex min-h-0 flex-col gap-3">
+          <LanguageReference />
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm font-medium text-foreground">
               <ScanText className="size-4 text-muted-foreground" />
@@ -136,7 +138,7 @@ export function AnalyzerWorkbench() {
               </TabsTrigger>
               <TabsTrigger value="translation" className="gap-1.5">
                 <FileCode2 className="size-4" />
-                <span className="hidden sm:inline">Python → C</span>
+                <span className="hidden sm:inline">Python → JavaScript</span>
               </TabsTrigger>
               <TabsTrigger value="docs" className="gap-1.5">
                 <BookOpen className="size-4" />

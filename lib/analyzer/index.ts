@@ -4,7 +4,7 @@
 import { tokenize } from "./lexer"
 import { parse } from "./parser"
 import { analyzeSemantics } from "./semantic"
-import { generateC } from "./codegen"
+import { generateJavaScript } from "./codegen"
 import type { AnalysisResult, TranslationResult } from "./types"
 
 export function analyze(source: string): AnalysisResult {
@@ -18,7 +18,7 @@ export function analyze(source: string): AnalysisResult {
   )
   const translation: TranslationResult =
     ast && blockingErrors.length === 0
-      ? generateC(ast)
+      ? generateJavaScript(ast)
       : { status: "bloqueado", code: null, errors: [], needsMath: false }
 
   return {

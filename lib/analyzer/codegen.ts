@@ -334,7 +334,7 @@ function hasDirectBreak(stmts: ASTNode[]): boolean {
   })
 }
 
-export function generateC(ast: ASTNode): TranslationResult {
+export function generateJavaScript(ast: ASTNode): TranslationResult {
   const errors: Diagnostic[] = []
   const report = (message: string, node: ASTNode) =>
     errors.push({ phase: "generacion", severity: "error", message, line: node.line, column: node.column })
