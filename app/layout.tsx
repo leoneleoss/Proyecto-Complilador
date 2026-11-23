@@ -3,9 +3,9 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Analizador de Python — Léxico, Sintáctico y Semántico',
+  title: 'Traductor didáctico de Python a JavaScript',
   description:
-    'Herramienta interactiva que analiza código Python en tres fases: análisis léxico (tokens), sintáctico (AST) y semántico (validaciones), con reporte de errores.',
+    'Herramienta educativa que analiza un subconjunto de Python en fases léxica, sintáctica y semántica, genera JavaScript y permite compilarlo y ejecutarlo.',
   generator: 'v0.app',
   icons: {
     icon: [
@@ -40,7 +40,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
+    <html lang="es">
       <body className="antialiased">
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}

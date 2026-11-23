@@ -1,8 +1,5 @@
 "use client"
 
-// Documento de diseño requerido como entregable: explica la arquitectura,
-// las decisiones importantes y cómo se manejan los errores en cada fase.
-
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="space-y-2">
@@ -16,101 +13,59 @@ export function Documentation() {
   return (
     <div className="thin-scroll h-full space-y-6 overflow-auto p-5">
       <div className="space-y-1">
-        <h2 className="text-lg font-semibold text-foreground">Documento de diseño</h2>
+        <h2 className="text-lg font-semibold text-foreground">Diseño y funcionamiento del proyecto</h2>
         <p className="text-sm text-muted-foreground">
-          Analizador de un subconjunto de Python implementado en TypeScript, dividido en tres fases
-          independientes que se comunican mediante estructuras de datos bien definidas.
+          Herramienta educativa que recibe código escrito en un subconjunto de Python, lo analiza por etapas y, si es válido, lo traduce a JavaScript. La interfaz permite inspeccionar el proceso y probar el resultado.
         </p>
       </div>
 
-      <Section title="Arquitectura general">
-        <p>
-          El proceso de traducción se implementa como un flujo de tres etapas:{" "}
-          <span className="text-foreground">código fuente → tokens → árbol de sintaxis (AST) → validación semántica</span>.
-          Cada fase vive en su propio módulo (<code className="text-sky-300">lexer.ts</code>,{" "}
-          <code className="text-sky-300">parser.ts</code>, <code className="text-sky-300">semantic.ts</code>) y el
-          archivo <code className="text-sky-300">index.ts</code> las orquesta.
-        </p>
+      <Section title="Recorrido completo de un programa">
+        <ol className="list-decimal space-y-1 pl-5">
+          <li><span className="text-foreground">Editor:</span> recibe el código fuente; las muestras permiten explorar estructuras admitidas.</li>
+          <li><span className="text-foreground">Coordinador (<code>index.ts</code>):</span> ejecuta el lexer, el parser, las comprobaciones semánticas y, si no hay errores bloqueantes, el generador de JavaScript.</li>
+          <li><span className="text-foreground">Paneles de resultados:</span> muestran tokens, árbol sintáctico (AST), diagnósticos y código traducido.</li>
+          <li><span className="text-foreground">Prueba del resultado:</span> permite comprobar la sintaxis del JavaScript generado, ejecutarlo en un entorno aislado de la interfaz y ver la salida capturada.</li>
+        </ol>
       </Section>
 
-      <Section title="Fase 1 — Análisis léxico">
-        <p>
-          El lexer recorre el texto carácter por carácter usando la técnica de{" "}
-          <span className="text-foreground">maximal munch</span> (siempre reconoce el token más largo posible,
-          por ejemplo <code className="text-rose-300">**=</code> antes que <code className="text-rose-300">*</code>).
-          Produce una lista de tokens con tipo, lexema, línea y columna.
-        </p>
+      <Section title="1. Análisis léxico — lexer.ts">
+        <p>Lee el texto de izquierda a derecha y lo divide en unidades llamadas <span className="text-foreground">tokens</span>. Cada token conserva su tipo, lexema y ubicación (línea y columna), información que se usa para resaltar el código y explicar errores.</p>
         <ul className="list-disc space-y-1 pl-5">
-          <li>
-            <span className="text-foreground">Categorías:</span> palabras reservadas, identificadores, enteros,
-            flotantes, cadenas, operadores y delimitadores.
-          </li>
-          <li>
-            <span className="text-foreground">Indentación:</span> se emula el modelo de Python con una pila de
-            niveles que genera tokens <code>INDENT</code> y <code>DEDENT</code>, ignorando la sangría dentro de
-            paréntesis.
-          </li>
-          <li>
-            <span className="text-foreground">Errores léxicos:</span> caracteres inválidos, cadenas sin cerrar y
-            literales numéricos mal formados (<code>12abc</code>, <code>3.14.15</code>) se reportan con su posición
-            exacta y se emiten como tokens <code>ERROR</code> para poder continuar.
-          </li>
+          <li>Reconoce palabras reservadas, identificadores, números, cadenas, operadores y delimitadores; elige primero el operador más largo cuando hay prefijos compartidos.</li>
+          <li>Emula la sangría de Python con tokens <code>INDENT</code> y <code>DEDENT</code>, y produce tokens de nueva línea para separar sentencias.</li>
+          <li>Detecta caracteres no válidos, cadenas sin cerrar y números mal formados. Los errores incluyen su posición para facilitar la corrección.</li>
         </ul>
       </Section>
 
-      <Section title="Fase 2 — Análisis sintáctico">
-        <p>
-          El parser es de <span className="text-foreground">descenso recursivo</span>, con una función por cada
-          regla de la gramática. Las expresiones se resuelven por niveles de precedencia (or → and → not →
-          comparación → suma → multiplicación → unario → potencia → postfijo → átomo).
-        </p>
+      <Section title="2. Análisis sintáctico — parser.ts">
+        <p>Comprueba que la secuencia de tokens respete la gramática implementada. Usa <span className="text-foreground">descenso recursivo</span>: distintas funciones reconocen sentencias y expresiones, respetando la precedencia de operadores.</p>
         <ul className="list-disc space-y-1 pl-5">
-          <li>
-            <span className="text-foreground">Estructuras soportadas:</span> asignaciones, <code>if/elif/else</code>,{" "}
-            <code>while</code>, <code>for</code>, <code>def</code>, <code>class</code>, <code>return</code>,{" "}
-            <code>break</code>, <code>continue</code>, llamadas, listas, diccionarios e indexación.
-          </li>
-          <li>
-            <span className="text-foreground">Recuperación de errores (panic-mode):</span> al encontrar un token
-            inesperado se reporta el error y se descarta hasta la siguiente línea lógica, de modo que un solo error
-            no oculta al resto.
-          </li>
-          <li>
-            <span className="text-foreground">Salida:</span> un AST cuyos nodos guardan tipo, etiqueta legible y
-            posición, listo para inspección y para la fase semántica.
-          </li>
+          <li>Construye un <span className="text-foreground">árbol de sintaxis abstracta (AST)</span> con nodos para asignaciones, expresiones, condicionales, ciclos, funciones, clases, llamadas, colecciones y otras construcciones admitidas.</li>
+          <li>Recupera errores descartando tokens hasta un límite seguro, para intentar informar de más de un problema en el mismo análisis.</li>
+          <li>El AST es una representación estructurada del programa; no es el código final que se ejecuta.</li>
         </ul>
       </Section>
 
-      <Section title="Fase 3 — Análisis semántico">
-        <p>
-          Se recorre el AST con una <span className="text-foreground">tabla de símbolos por ámbitos anidados</span>.
-          Una primera pasada registra todas las funciones para permitir llamadas anteriores a su definición.
-        </p>
+      <Section title="3. Análisis semántico — semantic.ts">
+        <p>Verifica aspectos que no dependen solo de la gramática. Mantiene ámbitos anidados y registra definiciones para detectar usos que no tienen sentido dentro del subconjunto implementado.</p>
         <ul className="list-disc space-y-1 pl-5">
-          <li>Uso de variables antes de ser definidas.</li>
-          <li>Número de argumentos incompatible con la firma de la función (considera valores por defecto).</li>
-          <li>Redefinición de funciones (advertencia).</li>
-          <li><code>return</code> fuera de una función y <code>break</code>/<code>continue</code> fuera de un bucle.</li>
-          <li>Destinos de asignación inválidos.</li>
+          <li>Detecta variables usadas antes de definirse y destinos de asignación inválidos.</li>
+          <li>Comprueba la cantidad de argumentos de funciones conocidas, incluyendo parámetros con valores por defecto.</li>
+          <li>Señala <code>return</code> fuera de funciones y <code>break</code>/<code>continue</code> fuera de ciclos; las redefiniciones de funciones se reportan como advertencias.</li>
         </ul>
       </Section>
 
-      <Section title="Decisiones de diseño">
-        <ul className="list-disc space-y-1 pl-5">
-          <li>
-            Separar cada fase en módulos independientes facilita las pruebas y refleja la arquitectura clásica de un
-            compilador.
-          </li>
-          <li>
-            Priorizar la <span className="text-foreground">recuperación de errores</span> en las tres fases para
-            entregar la mayor cantidad de diagnósticos útiles en un solo pase.
-          </li>
-          <li>
-            Cada token y nodo conserva <span className="text-foreground">línea y columna</span>, lo que permite
-            mensajes precisos y el resaltado del editor.
-          </li>
-        </ul>
+      <Section title="4. Generación de código — codegen.ts">
+        <p>Recorre el AST y genera el equivalente en <span className="text-foreground">JavaScript</span> para las construcciones soportadas. Resuelve diferencias entre ambos lenguajes con funciones auxiliares y convenciones de traducción. Si una construcción no se puede traducir, muestra el motivo en lugar de entregar una salida incompleta.</p>
+      </Section>
+
+      <Section title="Cómo explicarlo: el proyecto funciona como traductor">
+        <p>En conjunto, el programa actúa como un <span className="text-foreground">traductor de lenguajes de programación</span>: toma un programa fuente escrito en el subconjunto de Python, identifica sus componentes, interpreta su estructura y significado, y los expresa en otro lenguaje —JavaScript— mediante código generado. La traducción solo se habilita si el análisis no encuentra errores bloqueantes.</p>
+        <p>Por eso no es únicamente un detector de errores ni un intérprete de Python: su salida principal es un nuevo programa en JavaScript. La compilación sintáctica y la ejecución que ofrece la interfaz sirven para comprobar esa traducción y observar su comportamiento.</p>
+      </Section>
+
+      <Section title="Alcance y límites">
+        <p>El proyecto implementa un <span className="text-foreground">subconjunto educativo</span>, no toda la especificación de Python. Que una palabra aparezca en la referencia léxica significa que se reconoce como token; no implica necesariamente que cada construcción de Python asociada esté implementada por el parser o pueda traducirse. Las capacidades concretas son las definidas por el lexer, la gramática y el generador.</p>
       </Section>
     </div>
   )

@@ -32,4 +32,4 @@ export function analyze(source: string): AnalysisResult {
 }
 
 export * from "./types"
-export { KEYWORDS, BUILTINS } from "./lexer"
+export { KEYWORDS, BUILTINS, OPERATORS, DELIMITERS } from "./lexer"
