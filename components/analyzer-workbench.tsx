@@ -65,10 +65,10 @@ export function AnalyzerWorkbench() {
           </div>
           <div>
             <h1 className="text-3xl font-semibold leading-tight text-foreground">
-              Analizador
+              Traductor de Python a JavaScript
             </h1>
             <p className="text-xs text-muted-foreground">
-              Léxico · Sintáctico · Semántico
+              Python → JavaScript · análisis y ejecución
             </p>
           </div>
         </div>
@@ -80,7 +80,7 @@ export function AnalyzerWorkbench() {
             <StatChip label="Advertencias" value={warningCount} tone="warning" />
           </div>
           <Select value={sampleId} onValueChange={handleSampleChange}>
-            <SelectTrigger className="w-[190px]" aria-label="Elegir programa de muestra">
+            <SelectTrigger className="w-[min(260px,calc(100vw-2rem))] max-w-full shrink-0 [&_[data-slot=select-value]]:min-w-0 [&_[data-slot=select-value]]:truncate" aria-label="Elegir programa de muestra">
               <SelectValue placeholder="Programa de muestra" />
             </SelectTrigger>
             <SelectContent>

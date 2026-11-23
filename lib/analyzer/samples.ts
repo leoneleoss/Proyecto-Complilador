@@ -48,7 +48,6 @@ else:
 # La consola de JavaScript debe mostrar exactamente: Hola mundo.
 mensaje = "Hola mundo"
 print(mensaje)
-print("La traduccion funciona")
 `,
   },
   {

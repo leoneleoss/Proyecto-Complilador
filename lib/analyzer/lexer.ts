@@ -23,13 +23,13 @@ export const BUILTINS = new Set([
 
 // Operadores ordenados de más largo a más corto para hacer "maximal munch"
 // (siempre intentar el operador más largo posible primero).
-const OPERATORS = [
+export const OPERATORS = [
   "**=", "//=", ">>=", "<<=", "!=", "==", ">=", "<=", "->", ":=",
   "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=", "**", "//", ">>", "<<",
   "+", "-", "*", "/", "%", "<", ">", "=", "&", "|", "^", "~", "@",
 ]
 
-const DELIMITERS = new Set(["(", ")", "[", "]", "{", "}", ",", ":", ".", ";"])
+export const DELIMITERS = new Set(["(", ")", "[", "]", "{", "}", ",", ":", ".", ";"])
 
 function isDigit(ch: string) {
   return ch >= "0" && ch <= "9"
