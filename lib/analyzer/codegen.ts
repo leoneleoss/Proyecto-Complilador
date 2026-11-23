@@ -700,69 +700,67 @@ export function generateJavaScript(ast: ASTNode): TranslationResult {
     return { code: `${f.cname}(${argCodes.join(", ")})`, type: f.returnsValue ? f.returnType : "void" }
   }
 
-  // print() de Python: separa argumentos con un espacio y termina en salto de línea.
+  // print() de Python: conserva tanto los literales como los valores y separa
+  // cada argumento con un espacio al escribirlo en la consola JavaScript.
   const genPrint = (args: ASTNode[], scope: Scope): Expr => {
-    const fmt: string[] = []
     const values: string[] = []
 
     const pushValue = (e: Expr, node: ASTNode) => {
-      switch (e.type) {
-        case "void":
-          fail("No se puede imprimir el resultado de una llamada sin valor de retorno.", node)
-          break
-        case "int":
-          fmt.push("%lld")
-          values.push(`(long long)(${e.code})`)
-          break
-        case "float":
-          useHelper("py_float_str")
-          fmt.push("%s")
-          values.push(`py_float_str(${e.code})`)
-          break
-        case "bool":
-          fmt.push("%s")
-          values.push(`((${e.code}) ? "True" : "False")`)
-          break
-        default:
-          fmt.push("%s")
-          values.push(e.type === null ? '""' : e.code)
-      }
+      if (e.type === "void") fail("No se puede imprimir el resultado de una llamada sin valor de retorno.", node)
+      if (e.type === "float") useHelper("py_float_str")
+      if (e.type === "bool") values.push(`(${e.code} ? "True" : "False")`)
+      else if (e.type === "float") values.push(`py_float_str(${e.code})`)
+      else values.push(e.code)
     }
 
-    const isStrish = (m: ASTNode): boolean => {
-      const u = unwrap(m)
-      if (u.type === "Cadena" || isStrCall(u)) return true
-      if (u.type === "OperadorBinario" && u.label === "+") return isStrish(u.children[0]) && isStrish(u.children[1])
+    const isStrish = (raw: ASTNode): boolean => {
+      const node = unwrap(raw)
+      if (node.type === "Cadena" || isStrCall(node)) return true
+      if (node.type === "OperadorBinario" && node.label === "+") {
+        return isStrish(node.children[0]) && isStrish(node.children[1])
+      }
       try {
-        return genExpr(u, scope).type === "str"
+        return genExpr(node, scope).type === "str"
       } catch {
         return false
       }
     }
 
+    const stringLiteral = (raw: ASTNode) => {
+      const quoteLength = raw.label.startsWith('"""') || raw.label.startsWith("'''") ? 3 : 1
+      const body = raw.label.slice(quoteLength, raw.label.length - quoteLength)
+      let decoded = ""
+      for (let i = 0; i < body.length; i++) {
+        if (body[i] !== "\\" || i + 1 >= body.length) {
+          decoded += body[i]
+          continue
+        }
+        const next = body[++i]
+        const escapes: Record<string, string> = {
+          n: "\\n", r: "\\r", t: "\\t", b: "\\b", f: "\\f", v: "\\v", a: "\\u0007",
+          "\\\\": "\\\\", "'": "'", '\"': '\"', "\n": "",
+        }
+        decoded += next in escapes ? escapes[next] : `\\${next}`
+      }
+      return JSON.stringify(decoded)
+    }
+
     const pieces = (raw: ASTNode) => {
-      const u = unwrap(raw)
-      if (u.type === "Cadena") {
-        fmt.push(cStringBody(u.label, u).replace(/%/g, "%%"))
-      } else if (isStrCall(u)) {
-        pushValue(genExpr(callArgs(u)[0], scope), u)
-      } else if (u.type === "OperadorBinario" && u.label === "+" && isStrish(u.children[0]) && isStrish(u.children[1])) {
-        pieces(u.children[0])
-        pieces(u.children[1])
+      const node = unwrap(raw)
+      if (node.type === "Cadena") {
+        values.push(stringLiteral(node))
+      } else if (isStrCall(node)) {
+        pushValue(genExpr(callArgs(node)[0], scope), node)
+      } else if (node.type === "OperadorBinario" && node.label === "+" && isStrish(node.children[0]) && isStrish(node.children[1])) {
+        pieces(node.children[0])
+        pieces(node.children[1])
       } else {
-        pushValue(genExpr(u, scope), u)
+        pushValue(genExpr(node, scope), node)
       }
     }
 
-    args.forEach((a, i) => {
-      if (i > 0) fmt.push(" ")
-      pieces(a)
-    })
-    fmt.push("\\n")
-    useHeader("stdio.h")
-    const format = `"${fmt.join("")}"`
-    // JavaScript conserva los argumentos separados y los imprime con espacios.
-    return { code: values.length ? `console.log(${values.join(", ")})` : `console.log()`, type: "void" }
+    args.forEach(pieces)
+    return { code: values.length ? `console.log(${values.join(", ")})` : "console.log()", type: "void" }
   }
 
   // ---- Sentencias ----
@@ -1001,7 +999,7 @@ export function generateJavaScript(ast: ASTNode): TranslationResult {
     "const py_floordiv_f = py_floordiv",
     "const py_mod = (a, b) => { if (b === 0) throw new Error('ZeroDivisionError: division by zero'); return ((a % b) + b) % b }",
     "const py_fmod = py_mod",
-    "const py_ipow = (a, b) => a ** b",
+    "const py_ipow = (a, b) => a ** b;",
   ]
   const main = ["(() => {", ...globalDecls.map((line) => `  ${line}`), ...mainBody.map((line) => `  ${jsLine(line)}`), "})()"]
   const sections = [
