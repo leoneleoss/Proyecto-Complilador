@@ -65,10 +65,10 @@ export function AnalyzerWorkbench() {
           </div>
           <div>
             <h1 className="text-3xl font-semibold leading-tight text-foreground">
-              Traductor de Python a JavaScript
+              Traductor de Lenguaje
             </h1>
             <p className="text-xs text-muted-foreground">
-              Python → JavaScript · análisis y ejecución
+              {'"Mini Python" → JavaScript   |   Análisis y ejecución'}
             </p>
           </div>
         </div>
